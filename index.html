@@ -1014,8 +1014,9 @@ input,textarea,select{font:inherit;color:inherit}
       v: 2,
       templates: [], groups: [], overrides: {}, done: {}, memo: '',
       savedAt: 0,
-      sync: { owner: '', repo: '', branch: 'main', path: 'schedule.json',
-              auto: false, lastSha: '', at: 0 },
+      // 默认指向本项目的公开仓库（数据文件也放这里）。换仓库时在设置里改即可。
+      sync: { owner: 'WellCommu2F', repo: 'timetable', branch: 'main', path: 'schedule.json',
+              auto: true, lastSha: '', at: 0 },
       ui: { density: 'auto', memoOn: true, edOpen: false, view: 'day', page: 'schedule',
             week: '', sel: '', grp: '', tpl: '', selWd: 0, whole: true, tplView: 'week' }
     };
