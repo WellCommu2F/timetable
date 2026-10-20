@@ -2662,7 +2662,7 @@ input,textarea,select{font:inherit;color:inherit}
       '<div class="mrow"><div><div class="nm">导入</div><div class="sub">用备份覆盖当前数据</div></div>' +
       '<div class="sp"></div><button class="btn sm" data-act="import">选择文件</button></div>' +
       '<div class="mrow"><div><div class="nm">自习室直播</div><div class="sub" id="liveSub">' +
-        (liveSeen() ? '已提示过访客' : '访客首次打开会弹一次') + '</div></div>' +
+        (liveSeen() ? '这台设备已经弹过，不再弹' : '别人第一次打开会弹出一次') + '</div></div>' +
       '<div class="sp"></div><button class="btn sm" data-act="liveCopy">复制链接</button></div>' +
       '<div class="ghbox">' +
         '<div class="ghhead">GitHub 云同步 <span class="ghst" id="ghSt">' + ghStatusLabel() + '</span></div>' +
