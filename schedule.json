@@ -55,7 +55,9 @@
     "2026-10-19": "10:15-11:40 *线性代数 | 致理楼 L1-606\n16:00-17:25 *思想道德与法治 | 致理楼 L2-108",
     "2026-10-20": "08:30-09:55 *大学英语(1) | 汇文楼 H3-104\n10:15-11:40 *高等数学A(1) | 致理楼 L1-207\n14:15-15:40 *线性代数 | 致理楼 L1-511\n逃课19:00-21:45 *大学计算机 | 致理楼 L2-511（机房）\n16：40-18：20 线代2\n18：30-19：40 阅读\n20：10-21：30 应试线代\n21：45-22：30 高数作业与复习\n22：45-24：00 c语言"
   },
-  "done": {},
-  "memo": "<div><font size=\"5\"><b>本学期稳定占用时间：</b></font></div><div><font size=\"2\">1）高数、应试线代-有课的当天及周末</font></div><div><font size=\"2\">2）线性代数-每天 争取起码解决一节</font></div><div><font size=\"2\">3）英语口语-1357自选30min整理或练习</font></div><div><font size=\"2\">4）C语言-争取34567都有时间学一下（05</font></div><div><span style=\"font-size:12.04px\">5）阅读-争取每天有一个小时</span></div><div><font size=\"2\">考试周另作安排</font></div><font size=\"4\"><div><br></div><b>今天：</b></font><div><font size=\"2\">把大计逃了，，，深圳小老头爱吹逼</font></div><div><span style=\"font-size:12.04px\"><br></span></div><div><span style=\"font-size:12.04px\"><br></span><div><br></div></div>",
-  "savedAt": 1792484748207
+  "done": {
+    "2026-10-20|16:40-18:20|线代2": 1
+  },
+  "memo": "<div><font size=\"5\"><b>本学期稳定占用时间：</b></font></div><div><font size=\"2\">1）高数、应试线代-有课的当天及周末</font></div><div><font size=\"2\">2）线性代数-每天 争取起码解决一节</font></div><div><font size=\"2\">3）英语口语-1357自选30min整理或练习</font></div><div><font size=\"2\">4）C语言-争取34567都有时间学一下（05</font></div><div><span style=\"font-size:12.04px\">5）阅读-争取每天有一个小时</span></div><div><font size=\"2\">考试周另作安排</font></div><div><font size=\"2\"><br></font></div><div><font size=\"4\"><b>吃饭呢</b></font></div><font size=\"4\"><div><br></div><b>今天：</b></font><div><font size=\"2\">把大计逃了，，，深圳小老头爱吹逼</font></div><div><span style=\"font-size:12.04px\"><br></span></div><div><span style=\"font-size:12.04px\"><br></span><div><br></div></div>",
+  "savedAt": 1792489403584
 }
