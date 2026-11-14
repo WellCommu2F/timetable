@@ -560,6 +560,10 @@ input,textarea,select{font:inherit;color:inherit}
 .mrow .nm{font-weight:750;font-size:12.5px}
 .mrow .sub{font-size:10.5px;color:var(--text-3);margin-top:2px}
 .mrow .sp{flex:1}
+.mrow.live{border-bottom:0;padding-bottom:3px}
+.livein{padding-bottom:9px;border-bottom:1px solid var(--line-soft)}
+.livein .tin{padding:7px 9px;font-size:12.5px;background:#fff}
+.livein .hint{margin-top:6px}
 .hint{font-size:11.5px;color:var(--text-3);line-height:1.65}
 .toast{
   position:fixed;left:50%;bottom:26px;transform:translate(-50%,14px);
@@ -1043,6 +1047,7 @@ input,textarea,select{font:inherit;color:inherit}
     return {
       v: 2,
       templates: [], groups: [], overrides: {}, done: {}, memo: '',
+      live: '',
       savedAt: 0,
       // 默认指向本项目的公开仓库（数据文件也放这里）。换仓库时在设置里改即可。
       sync: { owner: 'WellCommu2F', repo: 'timetable', branch: 'main', path: 'schedule.json',
@@ -1094,6 +1099,7 @@ input,textarea,select{font:inherit;color:inherit}
       Object.keys(inp.done).forEach(function (k) { if (inp.done[k]) s.done[k] = 1; });
     }
     s.memo = String(inp.memo || '');
+    s.live = cleanLiveUrl(inp.live);
     s.savedAt = +inp.savedAt || 0;
     var u = inp.ui || {};
     s.ui.density = (u.density === 0 || u.density === 1 || u.density === 2) ? u.density : 'auto';
@@ -2616,7 +2622,7 @@ input,textarea,select{font:inherit;color:inherit}
     var data = {
       v: 2, templates: state.templates, groups: state.groups,
       overrides: state.overrides, done: state.done, memo: state.memo,
-      ui: state.ui, savedAt: Date.now()
+      live: state.live, ui: state.ui, savedAt: Date.now()
     };
     try {
       var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -2641,13 +2647,15 @@ input,textarea,select{font:inherit;color:inherit}
         var o = null;
         try { o = JSON.parse(String(fr.result)); } catch (e) {}
         if (!o || o.v !== 2) { toast('文件格式不对（需要 v2）'); return; }
-        var keepUi = state.ui, keepSync = state.sync;
+        var keepUi = state.ui, keepSync = state.sync, keepLive = state.live;
         state = sanitize(o);
         state.ui = keepUi;
         state.sync = keepSync;
+        if (!state.live) state.live = keepLive;   // 老备份里没有这一项，别把本机设的链接抹了
         save();
         memoEl.innerHTML = cleanMemoHTML(state.memo);
         applyUi();
+        refreshLive();
         renderAll();
         toast('已导入');
       };
@@ -2663,9 +2671,12 @@ input,textarea,select{font:inherit;color:inherit}
       '<div class="sp"></div><button class="btn sm" data-act="export">导出</button></div>' +
       '<div class="mrow"><div><div class="nm">导入</div><div class="sub">用备份覆盖当前数据</div></div>' +
       '<div class="sp"></div><button class="btn sm" data-act="import">选择文件</button></div>' +
-      '<div class="mrow"><div><div class="nm">自习室直播</div><div class="sub" id="liveSub">' +
+      '<div class="mrow live"><div><div class="nm">自习室直播</div><div class="sub" id="liveSub">' +
         (liveSeen() ? '这台设备已经弹过，不再弹' : '别人第一次打开会弹出一次') + '</div></div>' +
       '<div class="sp"></div><button class="btn sm" data-act="liveCopy">复制链接</button></div>' +
+      '<div class="livein"><input class="tin" id="liveUrl" spellcheck="false" autocomplete="off" ' +
+        'placeholder="https://meet.jit.si/房间名" value="' + esc(liveShown(liveUrl())) + '">' +
+        '<div class="hint">填房间名也行，粘整条链接也行；清空就回到原来那间。</div></div>' +
       '<div class="ghbox">' +
         '<div class="ghhead">GitHub 云同步 <span class="ghst" id="ghSt">' + ghStatusLabel() + '</span></div>' +
         '<div class="ghgrid">' +
@@ -2705,7 +2716,7 @@ input,textarea,select{font:inherit;color:inherit}
   var pushTimer = null;
 
   function dataStamp() {
-    return JSON.stringify([state.templates, state.groups, state.overrides, state.done, state.memo]);
+    return JSON.stringify([state.templates, state.groups, state.overrides, state.done, state.memo, state.live]);
   }
   function ghLoadToken() {
     try { ghTok = localStorage.getItem(GH_TOKEN_KEY) || ''; } catch (e) { ghTok = ''; }
@@ -2818,14 +2829,22 @@ input,textarea,select{font:inherit;color:inherit}
     if (tk !== null) ghStoreToken(tk, remEl ? remEl.checked : ghTokSaved);
     var autoEl = $('ghAuto');
     if (autoEl) state.sync.auto = !!autoEl.checked;
+    var liveEl = $('liveUrl');
+    if (liveEl) {
+      var lv = cleanLiveUrl(liveEl.value);
+      state.live = (lv === LIVE_URL) ? '' : lv;   // 还是原来那间就不单独存
+    }
     save(true);
+    refreshLive();
     setSync(ghReady() ? (state.sync.lastSha ? 'ok' : 'idle') : 'off');
+    noteDataChange();   // 直播间链接也算数据，改了就跟着同步上去
   }
 
   function syncPayload() {
     return {
       v: 2, templates: state.templates, groups: state.groups,
       overrides: state.overrides, done: state.done, memo: state.memo,
+      live: state.live,
       savedAt: state.savedAt || Date.now()
     };
   }
@@ -2837,6 +2856,7 @@ input,textarea,select{font:inherit;color:inherit}
     state.overrides = s.overrides;
     state.done = s.done;
     state.memo = s.memo;
+    state.live = s.live;
     state.savedAt = +s.savedAt || Date.now();
     if (!groupById(state.ui.grp)) state.ui.grp = state.groups.length ? state.groups[0].id : '';
     if (!tplById(state.ui.tpl)) {
@@ -2846,6 +2866,7 @@ input,textarea,select{font:inherit;color:inherit}
     memoEl.innerHTML = cleanMemoHTML(state.memo);
     save(true);
     lastStamp = dataStamp();
+    refreshLive();
     renderAll();
   }
 
@@ -3022,10 +3043,37 @@ input,textarea,select{font:inherit;color:inherit}
   /* ============================================================
      12.6 自习室
      ============================================================ */
-  // 房间名是中文，这里用 UTF-8 编码后的形式（解码 = 宝宝我是个装逼犯）
-  var LIVE_URL = 'https://beta.meet.jit.si/%E5%AE%9D%E5%AE%9D%E6%88%91%E6%98%AF%E4%B8%AA%E8%A3%85%E9%80%BC%E7%8A%AF';
+  // 默认房间（state.live 为空时用这个）。房间名是中文，所以写成 UTF-8 编码形式
+  // （解码 = 宝宝我是个装逼犯）。设置里可以自己改，改完跟着日程一起同步。
+  var LIVE_HOST = 'https://meet.jit.si/';
+  var LIVE_URL = LIVE_HOST + '%E5%AE%9D%E5%AE%9D%E6%88%91%E6%98%AF%E4%B8%AA%E8%A3%85%E9%80%BC%E7%8A%AF';
   var LIVE_SEEN = 'jhdwmc-live-seen';
   var LIVE_ICON = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="12.5" height="12" rx="2.5"/><path d="M15.5 10.6l5.5-3.1v9l-5.5-3.1z"/></svg>';
+
+  // 允许三种写法：整条链接 / 只有域名 / 只有房间名。返回 '' 表示「用默认」
+  function cleanLiveUrl(v) {
+    var s = String(v == null ? '' : v).trim();
+    if (!s) return '';
+    if (/^https?:\/\//i.test(s)) return encNonAscii(s);
+    if (/^[\w-]+(\.[\w-]+)+(\/|$)/.test(s)) return encNonAscii('https://' + s);
+    return LIVE_HOST + encodeURIComponent(s);
+  }
+  // 中文只编码非 ASCII 的字符，已经 %XX 的部分保持不动，避免二次编码
+  function encNonAscii(s) {
+    return String(s).replace(/[^\x00-\x7F]+/g, function (m) { return encodeURIComponent(m); });
+  }
+  // 填框里显示成中文，看着认得出来；存的时候再编码回去
+  function liveShown(u) {
+    try { return decodeURI(String(u)); } catch (e) { return String(u); }
+  }
+  function liveUrl() {
+    return (state && state.live) || LIVE_URL;
+  }
+  // 链接一变，顶栏入口跟着变
+  function refreshLive() {
+    var b = $('btnLive');
+    if (b) b.href = liveUrl();
+  }
 
   function liveSeen() {
     try { return localStorage.getItem(LIVE_SEEN) === '1'; } catch (e) { return false; }
@@ -3039,7 +3087,7 @@ input,textarea,select{font:inherit;color:inherit}
     if ($('modal') && $('modal').classList.contains('on')) return;   // 别打断已经打开的弹层
     liveMarkSeen();
     modalOpen('─=≡Σ((( つ•̀ω•́)つ里边请', '',
-      '<a class="livego" href="' + LIVE_URL + '" target="_blank" rel="noopener">' + LIVE_ICON + '进入自习室</a>',
+      '<a class="livego" href="' + esc(liveUrl()) + '" target="_blank" rel="noopener">' + LIVE_ICON + '进入自习室</a>',
       [{ text: '关闭', cls: 'btn' }], null);
     $('moTitle').classList.add('emo');
   }
@@ -3047,7 +3095,7 @@ input,textarea,select{font:inherit;color:inherit}
     var done = function () { toast('直播间链接已复制'); };
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(LIVE_URL).then(done, function () { copyLiveUrlFallback(done); });
+        navigator.clipboard.writeText(liveUrl()).then(done, function () { copyLiveUrlFallback(done); });
         return;
       }
     } catch (e) {}
@@ -3056,7 +3104,7 @@ input,textarea,select{font:inherit;color:inherit}
   function copyLiveUrlFallback(done) {
     try {
       var ta = document.createElement('textarea');
-      ta.value = LIVE_URL;
+      ta.value = liveUrl();
       ta.style.position = 'fixed';
       ta.style.opacity = '0';
       document.body.appendChild(ta);
@@ -3064,7 +3112,7 @@ input,textarea,select{font:inherit;color:inherit}
       document.execCommand('copy');
       document.body.removeChild(ta);
       done();
-    } catch (e) { toast('复制不了，链接：' + LIVE_URL); }
+    } catch (e) { toast('复制不了，链接：' + liveUrl()); }
   }
 
   /* ============================================================
@@ -3513,7 +3561,7 @@ input,textarea,select{font:inherit;color:inherit}
   lastStamp = dataStamp();
   setSync(ghReady() ? (state.sync.lastSha ? 'ok' : 'idle') : 'off');
   if (state.sync.auto && ghReady()) bootSync();
-  if ($('btnLive')) $('btnLive').href = LIVE_URL;
+  refreshLive();
   setTimeout(liveNudge, 320);          // 等首屏铺好再弹，避免和渲染抢
   if (loaded.reset) toast('旧版本的数据格式不兼容，已重置为示例（旧数据另存了一份，没有丢）');
   setInterval(tick, 1000);
@@ -3533,6 +3581,8 @@ input,textarea,select{font:inherit;color:inherit}
     fitLayout: fitLayout,
     yOfIn: yOfIn,
     cleanMemoHTML: cleanMemoHTML,
+    liveUrl: liveUrl,
+    syncPayload: syncPayload,
     renderAll: renderAll,
     save: save,
     fp: fp,
